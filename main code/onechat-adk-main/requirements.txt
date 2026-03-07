@@ -1,0 +1,9 @@
+# Composio Agent Web UI
+
+google-adk>=1.21.0
+fastapi
+uvicorn[standard]
+sse-starlette
+composio
+composio-google
+python-dotenv
