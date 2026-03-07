@@ -46,3 +46,10 @@ ENV/
 # Project Specific
 logs/
 *.log
+
+# Credentials & Secrets
+*.json
+!package.json
+!composer.json
+.env
+.env.*
