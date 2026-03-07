@@ -7,3 +7,4 @@ sse-starlette
 composio
 composio-google
 python-dotenv
+firebase-admin

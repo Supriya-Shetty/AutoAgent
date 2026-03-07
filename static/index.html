@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OneChat - Composio Agent</title>
+    <title>AutoAgent</title>
     <meta name="description" content="AI assistant with 500+ app integrations powered by Composio">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,8 +13,11 @@
         rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
 
 <body>
@@ -27,12 +30,17 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <div class="logo-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 2L2 9L16 16L30 9L16 2Z" stroke="currentColor" stroke-width="2"
+                                stroke-linejoin="round" />
+                            <path d="M2 23L16 30L30 23" stroke="currentColor" stroke-width="2"
+                                stroke-linejoin="round" />
+                            <path d="M2 9V23" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                            <path d="M30 9V23" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                            <circle cx="16" cy="16" r="4" fill="currentColor" fill-opacity="0.2" />
                         </svg>
                     </div>
-                    <span class="logo-text">OneChat</span>
+                    <span class="logo-text">AutoAgent</span>
                 </div>
                 <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Close sidebar">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -51,6 +59,10 @@
                     </svg>
                     <span>New Chat</span>
                 </button>
+                <div class="sessions-separator">Recent Chats</div>
+                <div id="sessionsList" class="sessions-list">
+                    <!-- Session items will be injected here -->
+                </div>
             </nav>
             <div class="sidebar-footer">
                 <div class="powered-by">
@@ -70,9 +82,7 @@
                             <path d="M9 3v18" />
                         </svg>
                     </button>
-                    <div class="header-info">
-                        <h1>Composio Agent</h1>
-                    </div>
+                    <h1>AutoAgent</h1>
                     <span class="status-badge">
                         <span class="status-dot"></span>
                         Online
@@ -99,9 +109,9 @@
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                         </svg>
                     </div>
-                    <h2>Welcome to OneChat</h2>
-                    <p class="welcome-subtitle">Your AI-powered assistant that connects to 500+ applications through
-                        Composio. Get instant insights and perform actions across all your work tools.</p>
+                    <h2>Welcome, <span id="welcomeUserName">User</span></h2>
+                    <p class="welcome-subtitle">Your intelligent AI assistant. Get instant insights and perform actions
+                        across all your work tools seamlessly.</p>
 
                     <div class="try-asking-label">Try asking...</div>
 
@@ -140,23 +150,6 @@
                                     <path d="M5 12h14" />
                                 </svg>
                             </button>
-                            <button type="button" class="input-icon-btn" title="Web search">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-                                    <path d="M2 12h20" />
-                                </svg>
-                            </button>
-                            <div class="model-selector">
-                                <span>Gemini 2.5</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path d="m6 9 6 6 6-6" />
-                                </svg>
-                            </div>
                         </div>
                         <textarea id="messageInput" placeholder="Ask me about your meetings, documents, or tasks..."
                             rows="1" autofocus></textarea>
@@ -170,9 +163,6 @@
                                 </svg>
                             </button>
                         </div>
-                    </div>
-                    <div class="input-hint">
-                        <a id="discoverPromptsLink">Click here to discover prompts</a>
                     </div>
                 </form>
             </div>
