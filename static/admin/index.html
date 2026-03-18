@@ -76,7 +76,7 @@
                     <div class="stat-icon messages-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 0 0 1 2-2h14a2 0 0 1 2 2z"></path>
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
                     </div>
                     <div class="stat-info">
@@ -121,8 +121,79 @@
                         </table>
                     </div>
                 </section>
+
+                <section class="section ai-providers-section">
+                    <div class="section-header">
+                        <h2>AI Provider Configuration</h2>
+                        <button id="add-provider-btn" class="btn btn-primary">Add Provider</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Model</th>
+                                    <th>Base URL</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ai-providers-table-body">
+                                <!-- AI Providers will be loaded here -->
+                                <tr>
+                                    <td colspan="5" class="loading">Loading providers...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </main>
+    </div>
+
+    <div id="provider-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <h2 id="modal-title">Add AI Provider</h2>
+                <button class="close-modal-btn">&times;</button>
+            </div>
+            <form id="provider-form">
+                <div class="form-group">
+                    <label for="provider-type">Preset Presets</label>
+                    <select id="provider-type" class="form-control" style="width: 100%; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 10px 14px; color: var(--color-text);">
+                        <option value="custom">Custom Configuration</option>
+                        <option value="openrouter">OpenRouter</option>
+                        <option value="opencode">OpenCode</option>
+                        <option value="kilocode">Kilo Code</option>
+                        <option value="openai">OpenAI Compatible</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="provider-name">Display Name</label>
+                    <input type="text" id="provider-name" required placeholder="e.g., My OpenRouter">
+                </div>
+                <div class="form-group">
+                    <label for="provider-base-url">Base URL</label>
+                    <input type="text" id="provider-base-url" required placeholder="https://api.example.com/v1">
+                </div>
+                <div class="form-group">
+                    <label for="provider-api-key">API Key / Secret</label>
+                    <input type="password" id="provider-api-key" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                    <label for="provider-model">Primary Model ID</label>
+                    <div style="display: flex; gap: 8px">
+                        <input type="text" id="provider-model" required placeholder="google/gemini-2.0-flash-exp:free" style="flex: 1">
+                        <select id="provider-model-select" style="flex: 1; display: none;"></select>
+                        <button type="button" id="fetch-models-btn" class="btn btn-secondary btn-sm">Fetch Models</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary close-modal-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-provider-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <div id="auth-guard" class="auth-loading">

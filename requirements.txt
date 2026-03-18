@@ -6,5 +6,10 @@ uvicorn[standard]
 sse-starlette
 composio
 composio-google
+composio-langchain
+langchain
+langchain-openai
+langchain-google-genai
 python-dotenv
 firebase-admin
+httpx

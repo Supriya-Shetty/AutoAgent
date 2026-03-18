@@ -37,10 +37,166 @@ def init_db():
                 last_login DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ai_providers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                base_url TEXT NOT NULL,
+                api_key TEXT,
+                model TEXT NOT NULL,
+                is_active INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Add default 'devproxy' provider if it doesn't exist
+        cursor.execute("SELECT COUNT(*) FROM ai_providers WHERE name = 'devproxy'")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute('''
+                INSERT INTO ai_providers (name, base_url, api_key, model, is_active)
+                VALUES (?, ?, ?, ?, ?)
+            ''', ('devproxy', 'https://autoagent-proxy.deviprasadshetty400.workers.dev/v1', '', 'openrouter/free', 1))
+            print("✅ Default provider 'devproxy' added to database.")
+
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"❌ Database initialization error: {e}")
+
+def get_ai_providers():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, name, base_url, api_key, model, is_active, created_at FROM ai_providers ORDER BY created_at DESC')
+        rows = cursor.fetchall()
+        conn.close()
+        return [
+            {
+                "id": row[0],
+                "name": row[1],
+                "base_url": row[2],
+                "api_key": f"{row[3][:6]}...{row[3][-4:]}" if row[3] and len(row[3]) > 10 else "********" if row[3] else None,
+                "model": row[4],
+                "is_active": bool(row[5]),
+                "created_at": row[6]
+            } for row in rows
+        ]
+    except Exception as e:
+        print(f"❌ Error getting AI providers: {e}")
+        return []
+
+def add_ai_provider(name: str, base_url: str, api_key: str, model: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO ai_providers (name, base_url, api_key, model)
+            VALUES (?, ?, ?, ?)
+        ''', (name, base_url, api_key, model))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Error adding AI provider: {e}")
+        return False
+
+def update_ai_provider(provider_id: int, name: str, base_url: str, api_key: str, model: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        if api_key:
+            cursor.execute('''
+                UPDATE ai_providers 
+                SET name = ?, base_url = ?, api_key = ?, model = ?
+                WHERE id = ?
+            ''', (name, base_url, api_key, model, provider_id))
+        else:
+            cursor.execute('''
+                UPDATE ai_providers 
+                SET name = ?, base_url = ?, model = ?
+                WHERE id = ?
+            ''', (name, base_url, model, provider_id))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Error updating AI provider: {e}")
+        return False
+
+def delete_ai_provider(provider_id: int):
+    """Delete an AI provider."""
+    try:
+        conn = sqlite3.connect("usage.db")
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM ai_providers WHERE id = ?", (provider_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting provider: {e}")
+        return False
+
+
+def update_ai_provider(provider_id: int, name: str, base_url: str, api_key: str, model: str):
+    """Update an existing AI provider."""
+    try:
+        conn = sqlite3.connect("usage.db")
+        cursor = conn.cursor()
+        
+        # Build query dynamically to only update api_key if provided
+        if api_key and api_key.strip():
+            cursor.execute('''
+                UPDATE ai_providers 
+                SET name = ?, base_url = ?, api_key = ?, model = ? 
+                WHERE id = ?
+            ''', (name, base_url, api_key, model, provider_id))
+        else:
+            cursor.execute('''
+                UPDATE ai_providers 
+                SET name = ?, base_url = ?, model = ? 
+                WHERE id = ?
+            ''', (name, base_url, model, provider_id))
+            
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error updating provider: {e}")
+        return False
+
+def set_active_provider(provider_id: int):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        # Deactivate all
+        cursor.execute('UPDATE ai_providers SET is_active = 0')
+        # Activate one
+        cursor.execute('UPDATE ai_providers SET is_active = 1 WHERE id = ?', (provider_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Error setting active provider: {e}")
+        return False
+
+def get_active_provider():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT name, base_url, api_key, model FROM ai_providers WHERE is_active = 1 LIMIT 1')
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "name": row[0],
+                "base_url": row[1],
+                "api_key": row[2],
+                "model": row[3]
+            }
+        return None
+    except Exception as e:
+        print(f"❌ Error getting active provider: {e}")
+        return None
 
 def increment_usage(user_id: str):
     try:
