@@ -38,6 +38,13 @@ def init_db():
             )
         ''')
         cursor.execute('''
+            CREATE TABLE IF NOT EXISTS composio_sessions (
+                user_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS ai_providers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -197,6 +204,44 @@ def get_active_provider():
     except Exception as e:
         print(f"❌ Error getting active provider: {e}")
         return None
+
+def save_composio_session(user_id: str, session_id: str):
+    """Save or update the Composio session ID for a user."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA busy_timeout = 5000")
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO composio_sessions (user_id, session_id, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id) DO UPDATE SET
+            session_id = excluded.session_id,
+            updated_at = CURRENT_TIMESTAMP
+        """,
+            (user_id, session_id),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"❌ Error saving Composio session: {e}")
+
+
+def get_composio_session(user_id: str):
+    """Retrieve the Composio session ID for a user."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT session_id FROM composio_sessions WHERE user_id = ?", (user_id,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception as e:
+        print(f"❌ Error getting Composio session: {e}")
+        return None
+
 
 def increment_usage(user_id: str):
     try:

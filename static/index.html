@@ -1,175 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoAgent</title>
-    <meta name="description" content="AI assistant with 500+ app integrations powered by Composio">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <!-- Firebase SDKs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
-
 <body>
     <div class="app-container">
-        <!-- Sidebar Overlay (Mobile) -->
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header" style="margin-bottom: 8px;">
                 <div class="logo">
-                    <div class="logo-icon">
-                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M16 2L2 9L16 16L30 9L16 2Z" stroke="currentColor" stroke-width="2"
-                                stroke-linejoin="round" />
-                            <path d="M2 23L16 30L30 23" stroke="currentColor" stroke-width="2"
-                                stroke-linejoin="round" />
-                            <path d="M2 9V23" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-                            <path d="M30 9V23" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-                            <circle cx="16" cy="16" r="4" fill="currentColor" fill-opacity="0.2" />
-                        </svg>
-                    </div>
-                    <span class="logo-text">AutoAgent</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                    <span class="logo-text" style="font-family: var(--font-serif); font-size: 22px; font-weight: 500; letter-spacing: 0.5px;">AutoAgent</span>
                 </div>
-                <button class="sidebar-close-btn" id="sidebarCloseBtn" title="Close sidebar">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m11 17-5-5 5-5" />
-                        <path d="m18 17-5-5 5-5" />
-                    </svg>
-                </button>
+                <button class="icon-btn collapse-btn" id="sidebarCloseBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
             </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" id="newChatBtn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 5v14" />
-                        <path d="M5 12h14" />
-                    </svg>
-                    <span>New Chat</span>
-                </button>
-                <div class="sessions-separator">Recent Chats</div>
-                <div id="sessionsList" class="sessions-list">
-                    <!-- Session items will be injected here -->
-                </div>
-            </nav>
-            <div class="sidebar-footer">
-                <div class="powered-by">
-                    Powered by <strong>Gemini + Composio</strong>
+            
+            <div class="sidebar-content">
+                <nav class="nav-group">
+                    <button class="nav-item new-task-btn" id="newChatBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span>New task</span>
+                    </button>
+                    <button class="nav-item" id="appsBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <span>Library</span>
+                    </button>
+                </nav>
+
+                <div class="nav-section flex-1" style="margin-top: 16px;">
+                    <div class="section-header">
+                        <span style="font-size: 13px; font-weight: 500; color: #71717a;">All tasks</span>
+                        <button class="icon-btn-small" style="color: #71717a;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></button>
+                    </div>
+                    <div class="task-list" id="sessionsList" style="margin-top: 8px;">
+                        <!-- Tasks go here -->
+                    </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Chat Area -->
-        <main class="main-content">
-            <header class="chat-header">
-                <div class="header-left">
-                    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle sidebar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="18" height="18" x="3" y="3" rx="2" />
-                            <path d="M9 3v18" />
-                        </svg>
-                    </button>
-                    <h1>AutoAgent</h1>
-                    <span class="status-badge">
-                        <span class="status-dot"></span>
-                        Online
-                    </span>
+        <!-- Sidebar Overlay (Mobile) -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Main Content -->
+        <main class="main-area">
+            <header class="top-nav">
+                <div class="nav-left">
+                    <button class="dropdown-btn" id="sidebarToggleBtn">AutoAgent 1.6 Lite <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
                 </div>
-                <div class="header-actions">
-                    <button class="icon-btn" id="clearChatBtn" title="Clear Chat">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                        </svg>
-                    </button>
+                <div class="nav-right" style="position: relative;">
+                    <div id="profileMenuToggle" style="cursor: pointer;">
+                        <img src="" id="userProfilePic" class="profile-pic" alt="User Profile" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-light); background: rgba(255, 255, 255, 0.1);" />
+                    </div>
+                    <div id="profileDropdown" class="hidden" style="position: absolute; top: 44px; right: 0; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 4px; min-width: 140px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 100;">
+                        <button id="logoutBtn" style="width: 100%; text-align: left; padding: 8px 12px; color: #ef4444; border-radius: 4px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: background 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.background='transparent'">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            Log out
+                        </button>
+                    </div>
                 </div>
             </header>
 
-            <div class="messages-container" id="messagesContainer">
-                <!-- Welcome Screen -->
-                <div class="welcome-screen" id="welcomeScreen">
-                    <div class="welcome-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
+            <div class="chat-container view active" id="chatView">
+                <div class="messages-area" id="messagesContainer">
+                    <div class="welcome-view" id="welcomeScreen">
+                        <div class="plan-info">
+                            <span class="active">Free plan</span>
+                            <span>Upgrade</span>
+                        </div>
+                        <h1 class="hero-title">What can I do for you, <span id="welcomeUserName"></span>?</h1>
                     </div>
-                    <h2>Welcome, <span id="welcomeUserName">User</span></h2>
-                    <p class="welcome-subtitle">Your intelligent AI assistant. Get instant insights and perform actions
-                        across all your work tools seamlessly.</p>
+                </div>
 
-                    <div class="try-asking-label">Try asking...</div>
-
-                    <div class="suggestion-grid">
-                        <button class="suggestion-card" data-prompt="What apps can I connect to?">
-                            <span>What <span class="highlight">apps</span> can I connect to?</span>
-                        </button>
-                        <button class="suggestion-card" data-prompt="Show me my connected accounts and their status.">
-                            <span>Show my <span class="highlight">connected accounts</span> and their status.</span>
-                        </button>
-                        <button class="suggestion-card" data-prompt="Help me connect my Gmail account.">
-                            <span>Help me connect my <span class="highlight">Gmail</span> account.</span>
-                        </button>
-                        <button class="suggestion-card" data-prompt="What recent emails do I have?">
-                            <span>What <span class="highlight">recent emails</span> do I have?</span>
-                        </button>
-                        <button class="suggestion-card" data-prompt="Search for tools related to calendar management.">
-                            <span>Search for tools related to <span class="highlight">calendar management</span>.</span>
-                        </button>
-                        <button class="suggestion-card" data-prompt="What can you help me with?">
-                            <span>What can you <span class="highlight">help me</span> with?</span>
-                        </button>
+                <div class="fixed-input-container">
+                    <form id="chatForm" class="input-box fixed-box" style="margin-bottom: 24px;">
+                        <textarea id="messageInput" placeholder="Assign a task or ask anything" rows="1"></textarea>
+                        <div class="input-toolbar">
+                            <div class="toolbar-left">
+                                <!-- Removed unused tool buttons (+, link, screen) -->
+                            </div>
+                            <div class="toolbar-right">
+                                <!-- Removed unused mic button -->
+                                <button type="submit" class="send-btn" id="sendBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="connect-tools" style="max-width: 768px; margin: 0 auto; margin-top: -32px; z-index: -1;">
+                        <span class="connect-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Connect your tools to AutoAgent</span>
+                        <div class="tool-icons">
+                            <img src="/static/tools/google-drive-color-icon.svg" class="mini-icon" alt="Google Drive" />
+                            <img src="/static/tools/notion-icon.svg" class="mini-icon" alt="Notion" />
+                            <img src="/static/tools/microsoft-outlook-icon.svg" class="mini-icon" alt="Outlook" />
+                            <img src="/static/tools/google-gemini-icon.svg" class="mini-icon" alt="Gemini" />
+                            <img src="/static/tools/netlify-icon.svg" class="mini-icon" alt="Netlify" />
+                        </div>
+                    </div>
+                    
+                    <div class="suggestion-pills" style="margin-top: 24px;">
+                        <button class="suggestion-card pill" data-prompt="generate image of a cat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> generate image of cat</button>
+                        <button class="suggestion-card pill" data-prompt="get my latest email"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> get my latest email</button>
+                        <button class="suggestion-card pill" data-prompt="what are my linear issues"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> what are my linear issues</button>
+                        <button class="pill">More</button>
                     </div>
                 </div>
             </div>
 
-            <div class="input-area">
-                <form class="input-form" id="chatForm">
-                    <div class="input-wrapper">
-                        <div class="input-actions-left">
-                            <button type="button" class="input-icon-btn" title="Attach file">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path d="M12 5v14" />
-                                    <path d="M5 12h14" />
-                                </svg>
-                            </button>
-                        </div>
-                        <textarea id="messageInput" placeholder="Ask me about your meetings, documents, or tasks..."
-                            rows="1" autofocus></textarea>
-                        <div class="input-actions-right">
-                            <button type="submit" class="send-btn" id="sendBtn" disabled title="Send message">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <path d="m5 12 7-7 7 7" />
-                                    <path d="M12 19V5" />
-                                </svg>
-                            </button>
-                        </div>
+            <!-- Apps View -->
+            <div id="appsView" class="view" style="padding: 80px 24px; overflow-y: auto;">
+                <h2 style="font-family: var(--font-serif); font-size: 32px; margin-bottom: 24px;">Library</h2>
+                
+                <div class="apps-toolbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="apps-tabs" style="display: flex; gap: 8px;">
+                        <button class="tab-btn active" data-tab="all" style="padding: 8px 16px; border-radius: var(--radius-full); background: rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 13px;">All Apps</button>
+                        <button class="tab-btn" data-tab="connected" style="padding: 8px 16px; border-radius: var(--radius-full); background: transparent; color: var(--text-secondary); font-size: 13px;">Connected Apps</button>
                     </div>
-                </form>
+                    <input type="text" id="appSearchInput" placeholder="Search apps..." style="background: var(--bg-input); border: 1px solid var(--border-light); padding: 10px 16px; border-radius: var(--radius-full); width: 100%; max-width: 300px; color: var(--text-primary); font-size: 13px;">
+                </div>
+                
+                <button id="appsSidebarToggleBtn" class="hidden">Toggle Sidebar</button>
+                <div class="apps-grid" id="appsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>
+            </div>
+
+            <!-- App Detail View -->
+            <div id="appDetailView" class="view" style="padding: 80px 24px; overflow-y: auto; display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 100%; max-width: 800px; margin: 0 auto; padding-bottom: 24px;">
+                    <button id="backToAppsBtn" class="back-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                        Back to Library
+                    </button>
+                </div>
+                <div id="appDetailContainer" style="width: 100%; max-width: 800px; margin: 0 auto;"></div>
             </div>
         </main>
     </div>
-
     <script src="/static/app.js"></script>
 </body>
-
 </html>

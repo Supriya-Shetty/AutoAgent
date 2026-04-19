@@ -82,7 +82,7 @@ function renderAIProvidersTable(providers) {
             <td><code>${escapeHtml(provider.model)}</code></td>
             <td style="font-size: 0.8rem; color: var(--color-text-secondary)">${escapeHtml(provider.base_url)}</td>
             <td>
-                <span class="status-badge ${provider.is_active ? "status-active" : ""}" style="background: ${provider.is_active ? "rgba(16, 185, 129, 0.1)" : "rgba(161, 161, 170, 0.1)"}; color: ${provider.is_active ? "var(--color-success)" : "var(--color-text-secondary)"}">
+                <span class="status-badge ${provider.is_active ? "status-active" : "status-blocked"}">
                     ${provider.is_active ? "Active" : "Inactive"}
                 </span>
             </td>
@@ -516,13 +516,13 @@ function renderChart(data) {
         {
           label: "Messages Sent",
           data: values,
-          borderColor: "#6366f1",
-          backgroundColor: "rgba(99, 102, 241, 0.1)",
-          borderWidth: 3,
-          tension: 0.4,
+          borderColor: "#ffffff",
+          backgroundColor: "rgba(255, 255, 255, 0.05)",
+          borderWidth: 2,
+          tension: 0,
           fill: true,
-          pointBackgroundColor: "#6366f1",
-          pointRadius: 4,
+          pointBackgroundColor: "#ffffff",
+          pointRadius: 0,
         },
       ],
     },
@@ -532,12 +532,12 @@ function renderChart(data) {
       scales: {
         y: {
           beginAtZero: true,
-          grid: { color: "rgba(255, 255, 255, 0.1)" },
-          ticks: { color: "#94a3b8" },
+          grid: { color: "rgba(255, 255, 255, 0.05)" },
+          ticks: { color: "#888888", font: { family: "Inter", size: 10 } },
         },
         x: {
           grid: { display: false },
-          ticks: { color: "#94a3b8" },
+          ticks: { color: "#888888", font: { family: "Inter", size: 10 } },
         },
       },
       plugins: {

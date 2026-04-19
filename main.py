@@ -41,6 +41,7 @@ load_dotenv(Path(__file__).parent / ".env", override=True)
 
 # Suppress warnings
 warnings.filterwarnings("ignore", message=".*non-text parts.*")
+warnings.filterwarnings("ignore", message=".*astream_events.*")
 logging.getLogger("google.genai").setLevel(logging.ERROR)
 
 
@@ -78,12 +79,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 # Initialize Firebase Admin
 def init_firebase_admin():
     try:
         service_account_path = (
             Path(__file__).parent
-            / "signupform2-6e36c-firebase-adminsdk-6r9af-395e431632.json"
+            / "signupform2-6e36c-firebase-adminsdk-6r9af-c3dec0503b.json"
         )
 
         if service_account_path.exists():
@@ -96,7 +98,9 @@ def init_firebase_admin():
                 "type": "service_account",
                 "project_id": os.getenv("FIREBASE_PROJECT_ID"),
                 "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
-                "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
+                "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace(
+                    "\\n", "\n"
+                ),
                 "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
                 "client_id": os.getenv("FIREBASE_CLIENT_ID"),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -105,9 +109,15 @@ def init_firebase_admin():
                 "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
             }
 
-            if all(
-                [service_account_info["private_key"], service_account_info["client_email"]]
-            ) and "Your_Private_Key_Here" not in service_account_info["private_key"]:
+            if (
+                all(
+                    [
+                        service_account_info["private_key"],
+                        service_account_info["client_email"],
+                    ]
+                )
+                and "Your_Private_Key_Here" not in service_account_info["private_key"]
+            ):
                 cred = credentials.Certificate(service_account_info)
                 firebase_admin.initialize_app(cred)
                 print("✅ Firebase Admin initialized using environment variables")
@@ -117,12 +127,15 @@ def init_firebase_admin():
                     firebase_admin.initialize_app()
                     print("✅ Firebase Admin initialized using default credentials")
                 except Exception:
-                    print("⚠️ Firebase Admin could not be initialized. Authentication will fail.")
+                    print(
+                        "⚠️ Firebase Admin could not be initialized. Authentication will fail."
+                    )
                     return False
         return True
     except Exception as e:
         print(f"⚠️ Firebase Admin initialization warning: {e}")
         return False
+
 
 # Run initialization
 FIREBASE_READY = init_firebase_admin()
@@ -244,11 +257,8 @@ async def chat(
         else:
             chat_history.append(AIMessage(content=h["content"]))
 
-    # Use a per-user agent executor if needed
-    if user_id == os.getenv("COMPOSIO_USER_ID"):
-        executor = root_agent
-    else:
-        executor = get_agent_executor(user_id=user_id)
+    # Use a per-user agent executor (Optimized with session reuse)
+    executor = get_agent_executor(user_id=user_id)
 
     async def event_generator():
         full_assistant_message = ""
@@ -377,9 +387,12 @@ async def create_ai_provider(
 
 @app.put("/admin/ai-providers/{provider_id}")
 async def update_ai_provider_endpoint(
-    provider_id: int, provider: AIProviderCreate, admin_data: dict = Depends(verify_admin)
+    provider_id: int,
+    provider: AIProviderCreate,
+    admin_data: dict = Depends(verify_admin),
 ):
     from database import update_ai_provider
+
     success = update_ai_provider(
         provider_id, provider.name, provider.base_url, provider.api_key, provider.model
     )
@@ -389,7 +402,9 @@ async def update_ai_provider_endpoint(
 
 
 @app.delete("/admin/ai-providers/{provider_id}")
-async def remove_ai_provider(provider_id: int, admin_data: dict = Depends(verify_admin)):
+async def remove_ai_provider(
+    provider_id: int, admin_data: dict = Depends(verify_admin)
+):
     success = delete_ai_provider(provider_id)
     if success:
         return {"status": "success", "message": "AI Provider deleted"}
@@ -406,7 +421,10 @@ async def activate_provider(provider_id: int, admin_data: dict = Depends(verify_
 
 @app.get("/admin/ai-providers/fetch-models")
 async def fetch_models(
-    base_url: str, api_key: str = "", provider_id: int = None, admin_data: dict = Depends(verify_admin)
+    base_url: str,
+    api_key: str = "",
+    provider_id: int = None,
+    admin_data: dict = Depends(verify_admin),
 ):
     import httpx
     import sqlite3
@@ -419,7 +437,7 @@ async def fetch_models(
         conn.close()
         if row and row[0]:
             api_key = row[0]
-            
+
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
 
@@ -483,6 +501,184 @@ async def test_provider_connection(
                 }
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+
+from composio import Composio
+from composio_langchain import LangchainProvider
+
+
+def get_composio_client():
+    return Composio(api_key=os.getenv("COMPOSIO_API_KEY"), provider=LangchainProvider())
+
+
+@app.get("/toolkits")
+async def list_toolkits(token_data: dict = Depends(verify_token)):
+    user_id = token_data.get("uid")
+    client = get_composio_client()
+
+    # Get all toolkits
+    toolkits_res = client.toolkits.list()
+
+    # Get connected accounts for this user
+    try:
+        accounts_res = client.connected_accounts.list(
+            user_ids=[user_id], statuses=["ACTIVE"]
+        )
+        connected_slugs = {
+            acc.toolkit.slug
+            for acc in accounts_res.items
+            if getattr(acc, "toolkit", None) and getattr(acc.toolkit, "slug", None)
+        }
+    except Exception as e:
+        print(f"⚠️ Error fetching connected accounts: {e}")
+        connected_slugs = set()
+
+    result = []
+    for tk in toolkits_res.items:
+        auth_type = "UNKNOWN"
+        if getattr(tk, "auth_config_details", None) and len(tk.auth_config_details) > 0:
+            auth_type = getattr(tk.auth_config_details[0], "mode", "UNKNOWN")
+        elif (
+            getattr(tk, "composio_managed_auth_schemes", None)
+            and len(tk.composio_managed_auth_schemes) > 0
+        ):
+            auth_type = tk.composio_managed_auth_schemes[0]
+
+        result.append(
+            {
+                "name": tk.name,
+                "slug": tk.slug,
+                "description": tk.meta.description if tk.meta else "",
+                "logo": tk.meta.logo if tk.meta else "",
+                "is_connected": tk.slug in connected_slugs,
+                "auth_type": auth_type,
+                "categories": [c.name for c in tk.meta.categories]
+                if tk.meta and tk.meta.categories
+                else [],
+            }
+        )
+
+    return result
+
+
+@app.get("/toolkits/{slug}")
+async def get_toolkit_detail(slug: str, token_data: dict = Depends(verify_token)):
+    user_id = token_data.get("uid")
+    client = get_composio_client()
+
+    tk = client.toolkits.get(slug)
+
+    # Check if connected
+    try:
+        accounts_res = client.connected_accounts.list(
+            user_ids=[user_id], toolkit_slugs=[slug], statuses=["ACTIVE"]
+        )
+        is_connected = len(accounts_res.items) > 0
+    except Exception:
+        is_connected = False
+
+    # Get auth type
+    auth_type = "UNKNOWN"
+    if getattr(tk, "auth_config_details", None) and len(tk.auth_config_details) > 0:
+        auth_type = getattr(tk.auth_config_details[0], "mode", "UNKNOWN")
+    elif (
+        getattr(tk, "composio_managed_auth_schemes", None)
+        and len(tk.composio_managed_auth_schemes) > 0
+    ):
+        auth_type = tk.composio_managed_auth_schemes[0]
+
+    # Get tools
+    tools = []
+    try:
+        tools_res = client.client.tools.list(toolkit_slug=slug)
+        for t in tools_res.items:
+            tools.append(
+                {
+                    "name": t.name,
+                    "description": getattr(
+                        t, "description", getattr(t, "human_description", "")
+                    ),
+                }
+            )
+    except Exception as e:
+        print(f"⚠️ Error fetching tools for {slug}: {e}")
+
+    # Get triggers
+    triggers = []
+    try:
+        triggers_res = client.client.triggers_types.list(toolkit_slugs=[slug])
+        for t in triggers_res.items:
+            triggers.append({"name": t.name, "description": t.description})
+    except Exception as e:
+        print(f"⚠️ Error fetching triggers for {slug}: {e}")
+
+    return {
+        "name": tk.name,
+        "slug": tk.slug,
+        "description": tk.meta.description if tk.meta else "",
+        "logo": tk.meta.logo if tk.meta else "",
+        "is_connected": is_connected,
+        "auth_type": auth_type,
+        "app_url": tk.meta.app_url if tk.meta else "",
+        "tools_count": tk.meta.tools_count if tk.meta else 0,
+        "tools": tools,
+        "triggers": triggers,
+        "categories": [c.name for c in tk.meta.categories]
+        if tk.meta and tk.meta.categories
+        else [],
+    }
+
+
+@app.post("/toolkits/{slug}/connect")
+async def connect_toolkit(slug: str, token_data: dict = Depends(verify_token)):
+    user_id = token_data.get("uid")
+    client = get_composio_client()
+
+    # Find auth config id for the toolkit
+    try:
+        auth_configs = client.auth_configs.list(toolkit_slug=slug)
+        if not auth_configs.items:
+            raise HTTPException(
+                status_code=404, detail=f"No auth config found for toolkit {slug}"
+            )
+        auth_config_id = auth_configs.items[0].id
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error fetching auth configs: {str(e)}"
+        )
+
+    # Create a session and get authorization URL
+    connection_request = client.connected_accounts.initiate(
+        user_id=user_id, auth_config_id=auth_config_id
+    )
+
+    return {
+        "redirectUrl": getattr(
+            connection_request,
+            "redirect_url",
+            getattr(connection_request, "redirectUrl", ""),
+        ),
+        "connectionId": getattr(
+            connection_request, "id", getattr(connection_request, "connectionId", None)
+        ),
+    }
+
+
+@app.delete("/toolkits/{slug}/disconnect")
+async def disconnect_toolkit(slug: str, token_data: dict = Depends(verify_token)):
+    user_id = token_data.get("uid")
+    client = get_composio_client()
+
+    try:
+        accounts_res = client.connected_accounts.list(
+            user_ids=[user_id], toolkit_slugs=[slug]
+        )
+        for acc in accounts_res.items:
+            print("Deleting connected account:", acc.id)
+            client.connected_accounts.delete(acc.id)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
