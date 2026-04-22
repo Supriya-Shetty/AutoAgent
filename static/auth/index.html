@@ -7,7 +7,11 @@
     <title>AutoAgent | Access</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://prod.spline.design" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="modulepreload" href="https://unpkg.com/@splinetool/viewer@1.0.51/build/spline-viewer.js">
+    <link rel="preload" href="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" as="fetch" crossorigin>
     <!-- Spline 3D Viewer -->
     <script type="module" src="https://unpkg.com/@splinetool/viewer@1.0.51/build/spline-viewer.js"></script>
     <!-- Firebase SDKs -->
@@ -144,8 +148,7 @@
                 <div class="behind-text-line">AGENT</div>
             </div>
 
-            <!-- Interactive 3D Robot Scene -->
-            <spline-viewer url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" class="spline-scene"></spline-viewer>
+            <spline-viewer url="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode" class="spline-scene" id="splineViewer"></spline-viewer>
 
             <div class="visual-content">
                 <div class="visual-quote">

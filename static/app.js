@@ -47,6 +47,7 @@ const elements = {
   chatView: document.getElementById("chatView"),
   appsView: document.getElementById("appsView"),
   appDetailView: document.getElementById("appDetailView"),
+  upgradeView: document.getElementById("upgradeView"),
   
   // Containers
   messagesContainer: document.getElementById("messagesContainer"),
@@ -59,6 +60,8 @@ const elements = {
   chatForm: document.getElementById("chatForm"),
   messageInput: document.getElementById("messageInput"),
   appSearchInput: document.getElementById("appSearchInput"),
+  upgradeForm: document.getElementById("upgradeForm"),
+  upgradeFormResult: document.getElementById("upgradeFormResult"),
   
   // Buttons
   sendBtn: document.getElementById("sendBtn"),
@@ -66,6 +69,8 @@ const elements = {
   appsBtn: document.getElementById("appsBtn"),
   clearChatBtn: document.getElementById("clearChatBtn"),
   backToAppsBtn: document.getElementById("backToAppsBtn"),
+  upgradeBtn: document.getElementById("upgradeBtn"),
+  backFromUpgradeBtn: document.getElementById("backFromUpgradeBtn"),
   
   // Sidebar
   sidebar: document.getElementById("sidebar"),
@@ -75,7 +80,9 @@ const elements = {
   sidebarOverlay: document.getElementById("sidebarOverlay"),
   
   // User
-  welcomeUserName: document.getElementById("welcomeUserName")
+  welcomeUserName: document.getElementById("welcomeUserName"),
+  upgradeName: document.getElementById("upgradeName"),
+  upgradeEmail: document.getElementById("upgradeEmail")
 };
 
 // ========================================
@@ -101,8 +108,13 @@ async function initFirebase() {
         }
         
         const profilePic = document.getElementById("userProfilePic");
-        if (profilePic && user.photoURL) {
-            profilePic.src = user.photoURL;
+        if (profilePic) {
+            if (user.photoURL) {
+                profilePic.src = user.photoURL;
+            } else {
+                const nameFallback = user.displayName || user.email.split("@")[0];
+                profilePic.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nameFallback)}&background=3b82f6&color=fff&size=64`;
+            }
         }
 
         if (state.sessionId) await loadHistory(state.sessionId);
@@ -140,7 +152,23 @@ renderer.link = function (href, title, text) {
   if (isAuth) {
     return `<div style="margin: 16px 0;"><a href="${href}"${titleAttr} class="${className}" target="_blank" rel="noopener noreferrer">${displayText}</a></div>`;
   }
+  
+  if (href.match(/\.(jpeg|jpg|gif|png)$/i) || displayText.toLowerCase().includes("image")) {
+    return `<div><a href="${href}" target="_blank" rel="noopener noreferrer"><img src="${href}" alt="${displayText}" style="max-width: 100%; border-radius: 8px; margin: 16px 0; border: 1px solid var(--border-light);" /></a><br><a href="${href}" target="_blank" rel="noopener noreferrer" style="font-size: 0.85em; color: var(--text-muted);">${displayText}</a></div>`;
+  }
+
   return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${displayText}</a>`;
+};
+
+renderer.image = function (href, title, text) {
+  if (typeof href === "object") {
+    const token = href;
+    href = token.href || "";
+    title = token.title || "";
+    text = token.text || "";
+  }
+  const titleAttr = title ? ` title="${title}"` : "";
+  return `<div><img src="${href}" alt="${text}"${titleAttr} style="max-width: 100%; border-radius: 8px; margin: 16px 0; border: 1px solid var(--border-light);" /></div>`;
 };
 
 marked.setOptions({ breaks: true, gfm: true, renderer: renderer });
@@ -190,9 +218,23 @@ function switchView(viewName) {
   elements.chatView.classList.toggle('active', viewName === 'chat');
   elements.appsView.classList.toggle('active', viewName === 'apps');
   elements.appDetailView.classList.toggle('active', viewName === 'appDetail');
+  elements.upgradeView.classList.toggle('active', viewName === 'upgrade');
 
   if (viewName === 'apps') loadApps();
+  if (viewName === 'upgrade') populateUpgradeForm();
   if (window.innerWidth <= 768) closeSidebar();
+}
+
+function populateUpgradeForm() {
+    const user = state.auth?.currentUser;
+    if (user) {
+        if (elements.upgradeName && !elements.upgradeName.value) {
+            elements.upgradeName.value = user.displayName || '';
+        }
+        if (elements.upgradeEmail && !elements.upgradeEmail.value) {
+            elements.upgradeEmail.value = user.email || '';
+        }
+    }
 }
 
 // ========================================
@@ -450,6 +492,9 @@ function closeSidebar() {
 function updateSidebarState() {
   elements.sidebar.classList.toggle("collapsed", !state.sidebarOpen);
   elements.sidebarOverlay.classList.toggle("visible", state.sidebarOpen && window.innerWidth <= 768);
+  elements.sidebarToggleBtn.innerHTML = state.sidebarOpen
+    ? 'AutoAgent 1.6 Lite <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
+    : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>';
 }
 
 // ========================================
@@ -600,9 +645,10 @@ async function sendMessage(text) {
     let currentEvent = "message";
     let eventData = [];
 
+    let streamEnded = false;
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done || streamEnded) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
       buffer = lines.pop();
@@ -633,9 +679,14 @@ async function sendMessage(text) {
             } else if (currentEvent === "error") {
               fullResponse += "\n\n**Error:** " + dataStr;
               updateAssistantMessage(assistantId, fullResponse, toolCalls, false);
+            } else if (currentEvent === "done") {
+              toolCalls.forEach(t => t.status = "completed");
+              updateAssistantMessage(assistantId, fullResponse, toolCalls, true);
+              streamEnded = true;
             }
             eventData = [];
           }
+          if (streamEnded) break;
           currentEvent = "message";
         }
       }
@@ -872,6 +923,67 @@ function initEventListeners() {
   
   elements.backToAppsBtn.addEventListener("click", () => switchView('apps'));
 
+  if (elements.upgradeBtn) {
+      elements.upgradeBtn.addEventListener("click", () => switchView('upgrade'));
+  }
+  
+  if (elements.backFromUpgradeBtn) {
+      elements.backFromUpgradeBtn.addEventListener("click", () => switchView('chat'));
+  }
+
+  if (elements.upgradeForm) {
+      elements.upgradeForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const form = e.target;
+          const formData = new FormData(form);
+          const result = elements.upgradeFormResult;
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalBtnText = submitBtn.innerHTML;
+          
+          submitBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Submitting...`;
+          submitBtn.disabled = true;
+          
+          const object = Object.fromEntries(formData);
+          const json = JSON.stringify(object);
+
+          fetch('https://api.web3forms.com/submit', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+              },
+              body: json
+          })
+          .then(async (response) => {
+              let res = await response.json();
+              if (response.status == 200) {
+                  result.innerHTML = "Request submitted successfully. We'll be in touch soon!";
+                  result.style.color = "#10b981";
+                  result.style.display = "block";
+                  form.reset();
+              } else {
+                  console.log(response);
+                  result.innerHTML = res.message;
+                  result.style.color = "#ef4444";
+                  result.style.display = "block";
+              }
+          })
+          .catch((error) => {
+              console.log(error);
+              result.innerHTML = "Something went wrong!";
+              result.style.color = "#ef4444";
+              result.style.display = "block";
+          })
+          .then(function() {
+              submitBtn.innerHTML = originalBtnText;
+              submitBtn.disabled = false;
+              setTimeout(() => {
+                  result.style.display = "none";
+              }, 5000);
+          });
+      });
+  }
+
   const profileMenuToggle = document.getElementById("profileMenuToggle");
   const profileDropdown = document.getElementById("profileDropdown");
   const logoutBtn = document.getElementById("logoutBtn");
@@ -944,4 +1056,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   state.auth = await initFirebase();
   initEventListeners();
   updateUIState();
+  updateSidebarState();
 });

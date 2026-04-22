@@ -1,5 +1,3 @@
-# Composio Agent Web UI
-
 google-adk==1.21.0
 fastapi==0.123.10
 uvicorn[standard]==0.40.0

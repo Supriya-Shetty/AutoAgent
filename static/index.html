@@ -78,7 +78,7 @@
                     <div class="welcome-view" id="welcomeScreen">
                         <div class="plan-info">
                             <span class="active">Free plan</span>
-                            <span>Upgrade</span>
+                            <span id="upgradeBtn">Upgrade</span>
                         </div>
                         <h1 class="hero-title">What can I do for you, <span id="welcomeUserName"></span>?</h1>
                     </div>
@@ -142,6 +142,53 @@
                     </button>
                 </div>
                 <div id="appDetailContainer" style="width: 100%; max-width: 800px; margin: 0 auto;"></div>
+            </div>
+
+            <!-- Upgrade Form View -->
+            <div id="upgradeView" class="view" style="padding: 80px 24px; overflow-y: auto; display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 100%; max-width: 600px; margin: 0 auto;">
+                    <button id="backFromUpgradeBtn" class="back-btn" style="margin-bottom: 32px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                        Back
+                    </button>
+                    
+                    <div class="app-hero" style="flex-direction: column; gap: 24px;">
+                        <div>
+                            <h2 style="font-family: var(--font-serif); font-size: 36px; margin-bottom: 8px;">Upgrade to Pro</h2>
+                            <p style="color: var(--text-secondary); line-height: 1.5;">Tell us how you plan to use AutoAgent, and we'll get back to you with early access to our pro features.</p>
+                        </div>
+                        
+                        <form action="https://api.web3forms.com/submit" method="POST" style="display: flex; flex-direction: column; gap: 16px; width: 100%;" id="upgradeForm">
+                            <!-- Replace with your actual Web3Forms Access Key -->
+                            <input type="hidden" name="access_key" value="YOUR_WEB3FORMS_ACCESS_KEY_HERE">
+                            <input type="hidden" name="subject" value="AutoAgent Pro Upgrade Request">
+                            <input type="hidden" name="from_name" value="AutoAgent Waitlist">
+                            <input type="checkbox" name="botcheck" class="hidden" style="display: none;">
+                            
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label for="upgradeName" style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Full Name</label>
+                                <input type="text" name="name" id="upgradeName" required style="background: var(--bg-main); border: 1px solid var(--border-light); padding: 12px; border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-sans); outline: none;">
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label for="upgradeEmail" style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Email Address</label>
+                                <input type="email" name="email" id="upgradeEmail" required style="background: var(--bg-main); border: 1px solid var(--border-light); padding: 12px; border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-sans); outline: none;">
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label for="upgradeReason" style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">How do you plan to use AutoAgent Pro?</label>
+                                <textarea name="message" id="upgradeReason" rows="4" required style="background: var(--bg-main); border: 1px solid var(--border-light); padding: 12px; border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-sans); outline: none; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="detail-btn btn-primary" style="margin-top: 8px; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                                Request Access
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                            </button>
+                            
+                            <p id="upgradeFormResult" style="display: none; margin-top: 16px; font-size: 14px; text-align: center; color: #10b981;"></p>
+                        </form>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
